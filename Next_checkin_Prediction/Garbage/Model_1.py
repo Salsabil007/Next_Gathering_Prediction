@@ -9,7 +9,7 @@ def str_to_date(str):
     x = str.split() #spliting from space #Format:Fri May 04 01:18:03 +0000 2012
     day,month,date,year = x[0],x[1],x[2],x[5]
     hour = x[3][0:2]
-    return day,month,int(date),int(hour),int(year)
+    return day,month,date,hour,year
 
 
 def csv_to_df():
@@ -65,6 +65,7 @@ def convert_to_categorical(data):
 data = csv_to_df()
 data = convert_to_categorical(data)
 print(data.head())
+print(data.dtypes)
 
 
 
