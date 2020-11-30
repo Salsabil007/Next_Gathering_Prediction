@@ -9,8 +9,12 @@ from sklearn.model_selection import train_test_split
 from keras.models import Sequential
 from keras.layers import LSTM
 from keras.layers import Dense
-
-def clustering(data):
+from keras.layers.core import Activation
+#from making_input import convert_to_categorical
+#from making_input import clustering
+#from making_input import pre_padding
+#from making_input import csv_to_df
+def clustering2(data):
     #coordinate = data.as_matrix(columns = ['latitude','longitude'])
     coordinate = data[['latitude','longitude']].to_numpy()
     bandwidth = estimate_bandwidth(coordinate, quantile = 0.2)
@@ -22,8 +26,7 @@ def clustering(data):
     data['cluster_grp'] = np.nan
     for i in range(len(coordinate)):
         data['cluster_grp'].iloc[i] = labels[i]
-    return data
-
+    return data, n_clusters_
 def str_to_date(str):
     str = str.strip() #removing any heading or tailing extra space
     x = str.split() #spliting from space #Format:Fri May 04 01:18:03 +0000 2012
@@ -100,30 +103,39 @@ def padding(mxlen, data, X, y):
     col = data.shape[1]
     out = data[len-1][col-1]
     data = np.delete(data, col-1, axis=1)
+    
     dummy = np.array([0])
     for i in range(col-2):
         dummy = np.append(dummy, 0)
     p = mxlen - len
     for i in range(p):
         data = np.vstack([data,dummy])
+    
     #print(data)
+    #X = np.append(X,data)
     X.append(data)
     y.append(out)
+    #y = np.append(y,out)
     return X,y
 
 def pre_padding(df):
     df = df.drop(df.columns[[1,4,5,6]], 1)
     df = str_to_numeric(df)
+    #df = df.astype(np.float32)
+    #df.fillna(value=0.00, inplace=True)
     user = df['userid'].unique()
     #print(len(df))
     df = df.drop_duplicates()
     df.to_csv("US_nodup.csv", index = False)
-    #print(len(df))
+    #print(df.dtypes)
     
     #finding max instance
     maxlen = 0
     ind = -1
+    #X = np.array([], dtype=object)
     X,y = list(),list()
+    #y = np.array([])
+    #y = np.array(dtype = np.int)
     for i in user:
         '''
         instance = df.apply(lambda x: True if x['userid'] == i else False , axis=1)
@@ -143,24 +155,23 @@ def pre_padding(df):
         arr = instance.values
         X,y = padding(maxlen, arr, X, y)
     return array(X),array(y)
-    #print(y)
-        
-    #print(maxlen)
-    #print(ind)
-    #print(df.head(10))
-    
-
 
 data = csv_to_df()
 data = convert_to_categorical(data)
 train, test = train_test_split(data, test_size=0.2)
-train = clustering(train.head(10))
+train, n_cluster = clustering2(train.head(10))
 X,y = pre_padding(train.head(10))
+print(y)
 n_features = X.shape[2]
+'''
 model = Sequential()
-model.add(LSTM(50, activation='relu'))
+model.add(LSTM(50, activation='relu',input_shape=(None, n_features)))
 model.add(Dense(1))
-model.compile(optimizer='adam', loss='mse')
+model.add(Dense(n_cluster))
+model.add(Activation('softmax'))
+model.compile(optimizer='adam', loss='sparse_categorical_crossentropy')
 # fit model
 model.fit(X, y, epochs=200, verbose=0)
+'''
+print("yes")
 #print(data.dtypes)

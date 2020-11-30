@@ -9,6 +9,11 @@ from sklearn.model_selection import train_test_split
 from keras.models import Sequential
 from keras.layers import LSTM
 from keras.layers import Dense
+from keras.layers.core import Activation
+from keras.optimizers import SGD
+from keras.wrappers.scikit_learn import KerasClassifier
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import KFold
 
 def clustering(data):
     #coordinate = data.as_matrix(columns = ['latitude','longitude'])
@@ -22,7 +27,9 @@ def clustering(data):
     data['cluster_grp'] = np.nan
     for i in range(len(coordinate)):
         data['cluster_grp'].iloc[i] = labels[i]
-    return data
+    labelencoder = LabelEncoder()
+    data['cluster_grp'] = labelencoder.fit_transform(data['cluster_grp'])
+    return data,n_clusters_
 
 def str_to_date(str):
     str = str.strip() #removing any heading or tailing extra space
@@ -78,6 +85,7 @@ def convert_to_categorical(data):
     data['day_cat'] = labelencoder.fit_transform(data['day'])
     data['month_cat'] = labelencoder.fit_transform(data['month'])
     data['year_cat'] = labelencoder.fit_transform(data['year'])
+    #train['cluster_grp'] = labelencoder.fit_transform(data['cluster_grp'])
     data = data.drop(data.columns[[1,2,9,12]], 1)
     return data
 def str_to_numeric(df):
@@ -94,10 +102,11 @@ def str_to_numeric(df):
     df['year_cat'] = pd.to_numeric(df['year_cat'])
     df['cluster_grp'] = pd.to_numeric(df['cluster_grp'])
     return df
-
+feat = 0
 def padding(mxlen, data, X, y):
     len = data.shape[0]
     col = data.shape[1]
+    feat = col - 1
     out = data[len-1][col-1]
     data = np.delete(data, col-1, axis=1)
     dummy = np.array([0])
@@ -115,7 +124,7 @@ def pre_padding(df):
     df = df.drop(df.columns[[1,4,5,6]], 1)
     df = str_to_numeric(df)
     user = df['userid'].unique()
-    #print(len(df))
+    #print(len(user))
     df = df.drop_duplicates()
     df.to_csv("US_nodup.csv", index = False)
     #print(len(df))
@@ -123,13 +132,8 @@ def pre_padding(df):
     #finding max instance
     maxlen = 0
     ind = -1
-    X,y = list(),list()
+    X,y = [],[]
     for i in user:
-        '''
-        instance = df.apply(lambda x: True if x['userid'] == i else False , axis=1)
-        # Count number of True in series
-        length = len(instance[instance == True].index)
-        '''
         instance = df[df.userid == i]
         instance = instance.drop(instance.columns[[0]], 1)
         arr = instance.values
@@ -141,26 +145,43 @@ def pre_padding(df):
         instance = df[df.userid == i]
         instance = instance.drop(instance.columns[[0]], 1)
         arr = instance.values
+        #arr = arr.astype('float32')
         X,y = padding(maxlen, arr, X, y)
-    return array(X),array(y)
-    #print(y)
-        
-    #print(maxlen)
-    #print(ind)
-    #print(df.head(10))
-    
-
-
+    return np.array(X),np.array(y)
+ 
 data = csv_to_df()
-data = convert_to_categorical(data)
-train, test = train_test_split(data, test_size=0.2)
-train = clustering(train.head(10))
-X,y = pre_padding(train.head(10))
-n_features = X.shape[2]
+train = convert_to_categorical(data.head(50))
+#train, test = train_test_split(data, test_size=0.2)
+train,n_cluster = clustering(train)
+#print(train.dtypes)
+
+#print(train.dtypes)
+X,y = pre_padding(train)
+#print(train.dtypes)
+print(X.shape[2])
+#print(n_cluster)
+'''
 model = Sequential()
-model.add(LSTM(50, activation='relu'))
-model.add(Dense(1))
-model.compile(optimizer='adam', loss='mse')
-# fit model
+model.add(Dense(500))
+model.add(Activation('relu'))
+model.add(Dense(18))
+model.add(Activation('softmax'))
+opt = SGD(lr=0.01, momentum=0.9)
+model.compile(loss='sparse_categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
 model.fit(X, y, epochs=200, verbose=0)
-#print(data.dtypes)
+print("yes")
+'''
+seed = 7
+np.random.seed(seed)
+model = Sequential()
+model.add(Dense(8, input_dim=X.shape[2], activation='relu'))
+model.add(Dense(n_cluster, activation='softmax'))
+	# Compile model
+model.compile(loss='sparse_categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+estimator = KerasClassifier(build_fn=model, epochs=200, batch_size=1, verbose=0)
+estimator.fit(X,y)
+#kfold = KFold(n_splits=3, shuffle=True, random_state=seed)
+#results = cross_val_score(estimator, X, y, cv=kfold)
+#print("Baseline: %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
+#model.fit(X, y, epochs=200, verbose=0)
+
