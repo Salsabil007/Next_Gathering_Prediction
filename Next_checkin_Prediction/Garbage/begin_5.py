@@ -6,28 +6,58 @@ from keras.layers import LSTM
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
 import tensorflow as tf
+from keras.utils import np_utils
+from keras.layers import Dropout
 
+#multi length variable timestep for regression
+'''
 X,y = [],[]
-X.append([1,2,3])
-X.append([5,6,7])
-X.append([3,4,5])
-#p = np.array([6])
-y.append([6])
-y.append([18])
-y.append([12])
+a = np.array([[1,2,3],[2,3,4]])
+b = np.array([[2,2,3],[3,3,4]])
+c = np.array([[2,3,5],[5,8,4]])
+t = np.array([[2,2,4],[3,3,6]])
+X.append(a)
+X.append(b)
+X.append(c)
+X = np.array(X)
+X = np.reshape(X,(X.shape[0],X.shape[1],X.shape[2]))
+y.append([15])
+y.append([17])
+y.append([27])
+y = np.array(y)
+model = Sequential()
+model.add(LSTM(100,activation='relu',input_shape=(None,3))) #only shape of timestep and feature
+model.add(Dense(1))
+model.compile(optimizer='adam',loss=tf.keras.losses.MeanSquaredError())
+model.fit(X, y, epochs=100, batch_size=1, verbose=2)
+'''
+X,y = [],[]
+a = np.array([[1,2,3],[2,3,4]])
+b = np.array([[2,2,3],[3,3,4]])
+c = np.array([[2,3,5],[5,8,4]])
+t = np.array([[2,2,4],[3,3,6]])
+testX = []
+testX.append(t)
+testX = np.array(testX)
+testX = np.reshape(testX,(1,testX.shape[1],testX.shape[2]))
+X.append(a)
+X.append(b)
+X.append(c)
+y.append([0])
+y.append([1])
+y.append([1])
 X = np.array(X)
 y = np.array(y)
-print(X.shape, y.shape)
-testX = np.array([[10,20,30]])
-testX = np.reshape(testX,(1,X.shape[1],1))
+X = np.reshape(X,(X.shape[0],X.shape[1],X.shape[2]))
+y = np_utils.to_categorical(y, 2)
+print(X.shape,y.shape)
 
-X = np.reshape(X,(X.shape[0],X.shape[1],1))
 model = Sequential()
-model.add(LSTM(100,activation='relu',input_shape=(X.shape[1],X.shape[2]))) #only shape of timestep and feature
-#model.add(Dense(1))
-model.compile(optimizer='adam',loss=tf.keras.losses.MeanSquaredError())
-
+model.add(LSTM(100, input_shape=(None,X.shape[2])))
+model.add(Dropout(0.5))
+model.add(Dense(100, activation='relu'))
+model.add(Dense(2, activation='softmax'))
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 model.fit(X, y, epochs=10, batch_size=1, verbose=2)
-
 yhat = model.predict(testX, verbose=0)
-print(yhat," yes")
+print(yhat)
