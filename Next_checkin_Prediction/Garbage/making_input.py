@@ -98,6 +98,7 @@ def str_to_numeric(df):
 def padding(mxlen, data, X, y):
     len = data.shape[0]
     col = data.shape[1]
+    print("col ", col)
     out = data[len-1][col-1]
     data = np.delete(data, col-1, axis=1)
     dummy = np.array([0])
@@ -156,6 +157,7 @@ data = convert_to_categorical(data)
 train, test = train_test_split(data, test_size=0.2)
 train = clustering(train.head(10))
 X,y = pre_padding(train.head(10))
+'''
 n_features = X.shape[2]
 model = Sequential()
 model.add(LSTM(50, activation='relu'))
@@ -164,3 +166,4 @@ model.compile(optimizer='adam', loss='mse')
 # fit model
 model.fit(X, y, epochs=200, verbose=0)
 #print(data.dtypes)
+'''
