@@ -129,7 +129,7 @@ def process_test(df, model):
         y = np.append(y,out)
         y = np_utils.to_categorical(y, n)
         _, accuracy = model.evaluate(X, y, batch_size=1, verbose=2)
-        print(accuracy)
+        print("yesss ", accuracy)
         '''
         yhat = model.predict(X, verbose=0)
         print(yhat)
@@ -177,7 +177,7 @@ def pre_padding(df,model,n):
 
 data = csv_to_df()
 data = convert_to_categorical(data)
-data = data.head(100)
+data = data.head(500)
 data,n = clustering(data)
 train, test = train_test_split(data, test_size=0.2)
 #train,n = clustering(train.head(10))
