@@ -11,10 +11,10 @@ plt.show()
 '''
 data = pd.read_csv("Dataset_US.csv")
 #print(data.info())
-#print(data.describe())
+print(data.describe())
 #print(data.latitude.unique())
 #print(data.userid.value_counts())
-
+'''
 sns.set_theme(style="white")
 corr = data.corr()
 mask = np.triu(np.ones_like(corr, dtype=bool))
@@ -26,3 +26,4 @@ plt.ylabel('Actual')
 plt.xlabel('Predicted')
 plt.show()
 print("yes")
+'''

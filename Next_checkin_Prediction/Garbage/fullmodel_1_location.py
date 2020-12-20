@@ -11,7 +11,9 @@ from keras.layers import LSTM
 from keras.layers import Dense
 from keras.utils import np_utils
 from keras.layers import Dropout
-import tensorflow as tf
+import tensorflow as tf	
+from keras.layers import Convolution2D, MaxPooling2D
+
 
 def csv_to_df():
     day = []
@@ -114,6 +116,8 @@ def process_test(df, model, center):
     person = df['userid'].unique()
     #person = person.to_numpy()
     #person = person.flatten()
+    total = 0
+    correct = 0
     for i in person:
         instance = df[df.userid == i]
         temp = instance
@@ -140,37 +144,43 @@ def process_test(df, model, center):
         yhat = model.predict(X, verbose=0)
         yhat = yhat.astype('float32')
         center = center.astype('float32')
-        #print("yhat ", yhat, "center ", center)
-        r = tf.matmul(yhat,center)
+        r = tf.matmul(yhat,center) #calculating long lat from probabilities
         print(r, "long ", long, "lat ", lat)
+        out1 = np.argmax(yhat[0]) #finding the index with max probability
+        total += 1
+        if (out1 == out):
+            correct += 1
         #print("actual", out)
-       
+    print("total ", total, " correct ", correct)
 
 
 def pre_padding(df,model,n):
-    df = df.drop(df.columns[[1,4,5,6]], 1)
-    df = str_to_numeric(df)
-    df = df.drop_duplicates()
+    df = df.drop(df.columns[[1,4,5,6]], 1) #Dropping unnecessary columns
+    df = str_to_numeric(df) #Converting the values into numeric
+    df = df.drop_duplicates() #Dropping duplicate rows
     df.to_csv("US_nodup.csv", index = False)
-    value_counts = df['userid'].value_counts()
+    value_counts = df['userid'].value_counts() #counting number of rows for each distinct userid
+
+    #storing each id and corresponding counts of rows in a file
     counts = pd.DataFrame(value_counts)
     counts = counts.reset_index()
     counts.columns = ['unique_id', 'counts']
     counts.to_csv("count.csv", index = False)
     counts = pd.read_csv("count.csv")
-    x = counts['counts'].unique()
+
+    x = counts['counts'].unique() #finding unique counts. user with unique count have same length of timestep and will be in same batch during training
     for i in x:
         person = counts[counts.counts == i]
         person = person.drop(person.columns[[1]], 1)
         person = person.to_numpy()
         len = person.shape[0]
-        person = person.flatten()
+        person = person.flatten() #person was column. so converting it into a row
         #print(person)
         X,y = [],[]
         y = np.empty(0)
         for j in person:
             instance = df[df.userid == j]
-            instance = instance.drop(instance.columns[[0,1,2]], 1)
+            instance = instance.drop(instance.columns[[0,1,2]], 1) #Dropping user id, longitude, latitude
             #print(instance.dtypes)
             instance = instance.to_numpy()
             X,y = create_batch(instance,X,y)
@@ -180,7 +190,7 @@ def pre_padding(df,model,n):
         X = np.reshape(X,(X.shape[0],X.shape[1],X.shape[2]))
         #print(X.shape, y.shape)
         #print(y)
-        y = np_utils.to_categorical(y, n)
+        y = np_utils.to_categorical(y, n) #converting output into categorical values
         model.fit(X,y, epochs=10, batch_size=1, verbose=2)
     return model
 
@@ -193,9 +203,9 @@ train, test = train_test_split(data, test_size=0.2)
 #train,n = clustering(train.head(10))
 model = Sequential()
 model.add(LSTM(100, input_shape=(None,7)))
-model.add(Dropout(0.5))
+model.add(Dropout(0.5)) #regularization to prevent overfitting
 model.add(Dense(100, activation='relu'))
-model.add(Dense(n, activation='softmax'))
+model.add(Dense(n, activation='softmax')) #output layer, so output entry must be equal to number of clusters
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 model = pre_padding(train,model,n)
 print(n)
