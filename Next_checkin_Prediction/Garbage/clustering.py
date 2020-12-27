@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 def clustering(data):
     #coordinate = data.as_matrix(columns = ['latitude','longitude'])
     coordinate = data[['latitude','longitude']].to_numpy()
-    bandwidth = estimate_bandwidth(coordinate, quantile = 0.2)
+    bandwidth = estimate_bandwidth(coordinate, quantile = 0.02)
     meanshift = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     meanshift.fit(coordinate)
     labels = meanshift.labels_
@@ -20,6 +20,7 @@ def clustering(data):
     print(data.head(100))
     
     #plotting data after clustering
+    '''
     colors = 10*['r','g','b','c','k','y','m']
     fig = plt.figure()
     ax = fig.add_subplot(111)
@@ -31,8 +32,21 @@ def clustering(data):
             marker="x",color='k', s=150, linewidths = 5, zorder=10)
 
     plt.show()
-    
-    return
+    '''
+    return cluster_centers
 
 data = pd.read_csv("Dataset_US.csv")
-clustering(data)
+#data = data.head(500)
+clusters = clustering(data)
+coordinates = data[['latitude','longitude']].to_numpy()
+plt.figure(figsize=(5,5))
+plt.scatter(clusters[:,1], clusters[:,0], c='#99cc99', edgecolor='None', alpha=0.7, s=40)
+#for i in range(len(coordinates)):
+plt.scatter(coordinates[:,1], coordinates[:,0], c='mediumvioletred', alpha=0.2, s=1) #c='k' for black
+plt.grid('off')
+plt.axis('off')
+plt.gca().xaxis.set_visible(False)
+plt.gca().yaxis.set_visible(False)
+plt.gca().autoscale_view('tight')
+plt.show()
+print("yes")

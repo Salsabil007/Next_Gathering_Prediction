@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 data = pd.read_csv("Dataset_US.csv")
 #userids = [19, 1668, 854, 5526]
-userids = [5526]
+userids = [19]
 for userid in userids:
     data = data[data.userid == userid].sort_values('time_in_minute')
     plt.subplot(2,1,1)

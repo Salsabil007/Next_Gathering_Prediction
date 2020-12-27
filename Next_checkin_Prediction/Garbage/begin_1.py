@@ -5,7 +5,7 @@ from keras.layers import Dense
 from keras.layers import LSTM
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import mean_squared_error
-import tensorflow as tf
+#import tensorflow as tf
 #this one is for single, constant length timestep regression
 #process input
 X,y = [],[]
