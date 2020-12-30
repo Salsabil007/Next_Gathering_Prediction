@@ -13,7 +13,7 @@ from keras.utils import np_utils
 from keras.layers import Dropout
 import tensorflow as tf	
 from keras.layers import Convolution2D, MaxPooling2D
-
+import seaborn as sns
 
 def csv_to_df():
     day = []
@@ -155,6 +155,20 @@ def process_test(df, model, center):
 
 
 def pre_padding(df,model,n):
+
+    sns.set_theme(style="darkgrid") #whitegrid, darkgrid, ticks
+    corr = df.corr()
+    mask = np.triu(np.ones_like(corr, dtype=bool))
+    f, ax = plt.subplots(figsize=(10, 10))
+    cmap = sns.diverging_palette(230, 20, as_cmap=True)
+    sns.heatmap(corr, annot=True, mask=mask, cmap="YlGnBu", vmax=.3, center=0,
+            square=True, linewidths=.5, cbar_kws={"shrink": .5})
+    plt.ylabel('Actual')
+    plt.xlabel('Predict')
+    plt.show()
+    print("yes")
+
+
     df = df.drop(df.columns[[1,4,5,6]], 1) #Dropping unnecessary columns
     df = str_to_numeric(df) #Converting the values into numeric
     df = df.drop_duplicates() #Dropping duplicate rows
@@ -191,13 +205,13 @@ def pre_padding(df,model,n):
         #print(X.shape, y.shape)
         #print(y)
         y = np_utils.to_categorical(y, n) #converting output into categorical values
-        model.fit(X,y, epochs=10, batch_size=1, verbose=2)
+        #model.fit(X,y, epochs=10, batch_size=1, verbose=2)
     return model
 
 
 data = csv_to_df()
 data = convert_to_categorical(data)
-data = data.head(500)
+#data = data.head(500)
 data,n, center = clustering(data)
 train, test = train_test_split(data, test_size=0.2)
 #train,n = clustering(train.head(10))
@@ -209,7 +223,7 @@ model.add(Dense(n, activation='softmax')) #output layer, so output entry must be
 model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 model = pre_padding(train,model,n)
 print(n)
-process_test(test, model,center)
+#process_test(test, model,center)
 
 '''
 data = pd.read_csv("Dataset_US.csv")

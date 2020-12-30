@@ -246,7 +246,7 @@ def pre_padding(df,model,n):
         for j in person:
             instance = df[df.userid == j]
             instance = instance.drop(instance.columns[[0]], 1) #Dropping user id, longitude, latitude
-            #print("batch ", instance.dtypes)
+            print("batch ", instance.dtypes)
             instance = instance.to_numpy()
             X,y = create_batch(instance,X,y)
             #print(y.shape[0])
@@ -266,7 +266,7 @@ data = csv_to_df()
 
 data = convert_to_categorical(data)
 #print(data.dtypes)
-#data = data.head(1000)
+data = data.head(500)
 data,n, center = clustering(data)
 
 train, test = train_test_split(data, test_size=0.2)
@@ -297,4 +297,4 @@ plt.legend(["train", "val"], loc="upper left")
 plt.show()
 
 print(n)
-process_test(test, model,center)
+#process_test(test, model,center)

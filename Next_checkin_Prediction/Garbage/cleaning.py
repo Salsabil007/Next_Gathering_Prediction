@@ -15,12 +15,12 @@ print(data.describe())
 #print(data.latitude.unique())
 #print(data.userid.value_counts())
 
-sns.set_theme(style="white")
+sns.set_theme(style="darkgrid") #whitegrid, darkgrid, ticks
 corr = data.corr()
 mask = np.triu(np.ones_like(corr, dtype=bool))
 f, ax = plt.subplots(figsize=(10, 8))
 cmap = sns.diverging_palette(230, 20, as_cmap=True)
-sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
+sns.heatmap(corr, annot=True, mask=mask, cmap="YlGnBu", vmax=.3, center=0,
             square=True, linewidths=.5, cbar_kws={"shrink": .5})
 plt.ylabel('Actual')
 plt.xlabel('Predict')
