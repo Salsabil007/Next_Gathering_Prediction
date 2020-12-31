@@ -206,13 +206,13 @@ def process_test(df, model, center):
         total += loss
         t += 1
         #epochs = 5
-
+    '''
     plt.subplot(2,1,1)
     plt.plot(x_vals, losses, '-o')    
     plt.title("model loss")
     plt.ylabel("loss")
     plt.xlabel("total")
-    plt.show()
+    plt.show()'''
     print("avg loss ", total/t)
 
 def pre_padding(df,model,n):
@@ -256,7 +256,7 @@ def pre_padding(df,model,n):
         #print(X.shape, y.shape)
         #print(y)
         y = np_utils.to_categorical(y, n) #converting output into categorical values
-        hist = model.fit(X,y, epochs=80, batch_size=1, verbose=2)
+        hist = model.fit(X,y, epochs=40, batch_size=1, verbose=2)
     #print("YESSSSSSSSSSSS")
     return model, hist
 
@@ -266,7 +266,7 @@ data = csv_to_df()
 
 data = convert_to_categorical(data)
 #print(data.dtypes)
-data = data.head(500)
+#data = data.head(500)
 data,n, center = clustering(data)
 
 train, test = train_test_split(data, test_size=0.2)
@@ -287,7 +287,7 @@ def linearlayer(softmaxout):
 model.add(Activation(linearlayer))
 model.compile(loss=haversine, optimizer ='adam', metrics=['accuracy'])
 model,hist = pre_padding(train,model,n)
-
+'''
 plt.plot(hist.history["loss"])
 #plt.plot(hist.history["val_loss"])
 plt.title("model loss")
@@ -297,4 +297,5 @@ plt.legend(["train", "val"], loc="upper left")
 plt.show()
 
 print(n)
-#process_test(test, model,center)
+'''
+process_test(test, model,center)
