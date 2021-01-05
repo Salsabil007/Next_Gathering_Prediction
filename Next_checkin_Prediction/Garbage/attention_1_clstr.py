@@ -2,19 +2,23 @@ import pandas as pd
 import numpy as np
 from numpy import array
 import sklearn
+import sys
 from sklearn.preprocessing import LabelEncoder
 from sklearn.cluster import MeanShift,KMeans, estimate_bandwidth
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
+import keras
 from keras.layers.core import Activation
 from keras.models import Sequential
 from keras.layers import LSTM
 from keras.layers import Dense
 from keras.utils import np_utils
 from keras.layers import Dropout
+from keras.layers import Input
 import tensorflow as tf	
-from keras import backend as K
-from keras.optimizers import SGD
+#from keras import backend as K
+from keras.layers import Layer
+import keras.backend as K
 #print(tf.version.VERSION)
 from keras.layers import Convolution2D, MaxPooling2D
 import math
@@ -104,7 +108,7 @@ def csv_to_df():
 def clustering(data):
     #coordinate = data.as_matrix(columns = ['latitude','longitude'])
     coordinate = data[['latitude','longitude']].to_numpy()
-    bandwidth = estimate_bandwidth(coordinate, quantile = 0.002)
+    bandwidth = estimate_bandwidth(coordinate, quantile = 0.02)
     meanshift = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     meanshift.fit(coordinate)
     labels = meanshift.labels_
@@ -247,7 +251,7 @@ def pre_padding(df,model,n):
         for j in person:
             instance = df[df.userid == j]
             instance = instance.drop(instance.columns[[0]], 1) #Dropping user id, longitude, latitude
-            print("batch ", instance.dtypes)
+            #print("batch ", instance.dtypes)
             instance = instance.to_numpy()
             X,y = create_batch(instance,X,y)
             #print(y.shape[0])
@@ -257,49 +261,88 @@ def pre_padding(df,model,n):
         #print(X.shape, y.shape)
         #print(y)
         y = np_utils.to_categorical(y, n) #converting output into categorical values
-        hist = model.fit(X,y, epochs=50, batch_size=1, verbose=2)
+        #print(y.shape)
+        hist = model.fit(X,y, epochs=5, batch_size=1, verbose=2)
     #print("YESSSSSSSSSSSS")
     return model, hist
+class attention(Layer):
+    def __init__(self,**kwargs):
+        super(attention,self).__init__(**kwargs)
 
-#tf.compat.v1.enable_eager_execution()
-#tf.compat.v1.disable_eager_execution()
+    def build(self,input_shape):
+        self.W=self.add_weight(name="att_weight",shape=(input_shape[-1],1),initializer="normal")
+        self.b=self.add_weight(name="att_bias",shape=(input_shape[1],1),initializer="zeros")    
+        print("KKK ", input_shape)    
+        super(attention, self).build(input_shape)
+
+    def call(self,x):
+        et=K.squeeze(K.tanh(K.dot(x,self.W)+self.b),axis=-1)
+        at=K.softmax(et)
+        at=K.expand_dims(at,axis=-1)
+        output=x*at
+        
+        return K.sum(output,axis=1)
+
+    def compute_output_shape(self,input_shape):
+        #print("KKK ", input_shape[0], input_shape[-1]) 
+        return (input_shape[0],input_shape[-1])
+
+    def get_config(self):
+        return super(attention,self).get_config()
+
 data = csv_to_df()
 
 data = convert_to_categorical(data)
 #print(data.dtypes)
-data = data.head(1000)
+data = data.head(500)
 data,n, center = clustering(data)
 
 train, test = train_test_split(data, test_size=0.2)
-#train,n = clustering(train.head(10))
+'''
+inputs=Input(shape=(None,11))
 model = Sequential()
-model.add(LSTM(100, input_shape=(None,11)))
-model.add(Dropout(0.5)) #regularization to prevent overfitting
-model.add(Dense(200, activation='relu'))
-model.add(Dense(n))
-model.add(Activation('softmax'))
-#model.add(Dense(n, activation='softmax')) #output layer, so output entry must be equal to number of clusters
+#model.add(LSTM(100, input_shape=(None,11)))
+p = LSTM(100)(inputs)
+#model.add(Dropout(0.5)) #regularization to prevent overfitting
+model.add(LSTM(100, input_shape=(None, 11)))
+
+#att_out=attention()(LSTM(100, return_sequences=True,dropout=0.3,recurrent_dropout=0.2)(p))
+model.add(attention()(LSTM(100, return_sequences=True,dropout=0.3,recurrent_dropout=0.2)(p) ))
+model.add(Dropout(0.5))
+'''
+'''
+model = Sequential()
+inputs=Input(shape=(5,11))
+#x=tf.keras.layers.Embedding(output_dim=32,embeddings_regularizer=keras.regularizers.l2(.001))(inputs)
+#att_in=LSTM(100,return_sequences=True,dropout=0.3,recurrent_dropout=0.2)(inputs)
+#att_out=attention()(att_in)
+#model.add(attention()(LSTM(100,return_sequences=True,dropout=0.3,recurrent_dropout=0.2)(inputs)))
+att_in=LSTM(100,return_sequences=True,dropout=0.3,recurrent_dropout=0.2)(inputs)
+att_out=attention()(att_in)
+outputs=Dense(1,activation='sigmoid',trainable=True)(att_out)
+o1 = Dense(200, activation='relu')(outputs)
+o2 = Dense(Activation('softmax'))(o1)
 center = center.astype('float32')
 def linearlayer(softmaxout):
-    #print("yesss ",softmaxout)
-    #print(softmaxout.shape, " ", center.shape)
     return tf.matmul(softmaxout,center)
-#model.add(Dense(1, activation =linearlayer))
-model.add(Activation(linearlayer))
-optimizer = SGD(lr=0.1, momentum=0.9, clipvalue=1.)
-model.compile(loss=haversine, optimizer =optimizer)
-#model.compile(loss=haversine, optimizer ='adam', metrics=['accuracy'])
+o3 = Dense(1, Activation(linearlayer))(o2)
+model=model(inputs,o3)
+'''
+model = Sequential()
+model.add(LSTM(100, input_shape=(None,11)))
+model.add(attention())
+model.add(Dense(n))
+model.add(Activation('softmax'))
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
 model,hist = pre_padding(train,model,n)
 '''
-plt.plot(hist.history["loss"])
-#plt.plot(hist.history["val_loss"])
-plt.title("model loss")
-plt.ylabel("loss")
-plt.xlabel("epoch")
-plt.legend(["train", "val"], loc="upper left")
-plt.show()
-
-
-'''
-#print(n)
-process_test(test, model,center)
+model.add(Dense(100, activation='relu'))
+model.add(Dense(n))
+model.add(Activation('softmax'))
+center = center.astype('float32')
+def linearlayer(softmaxout):
+    return tf.matmul(softmaxout,center)
+model.add(Activation(linearlayer))
+model.compile(loss=haversine, optimizer ='adam', metrics=['accuracy'])
+model,hist = pre_padding(train,model,n) '''
+#process_test(test, model,center)

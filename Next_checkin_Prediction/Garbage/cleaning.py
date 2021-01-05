@@ -14,7 +14,7 @@ data = pd.read_csv("Dataset_US.csv")
 print(data.describe())
 #print(data.latitude.unique())
 #print(data.userid.value_counts())
-
+'''
 sns.set_theme(style="darkgrid") #whitegrid, darkgrid, ticks
 corr = data.corr()
 mask = np.triu(np.ones_like(corr, dtype=bool))
@@ -26,3 +26,4 @@ plt.ylabel('Actual')
 plt.xlabel('Predict')
 plt.show()
 print("yes")
+'''

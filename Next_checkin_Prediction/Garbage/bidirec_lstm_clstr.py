@@ -14,9 +14,10 @@ from keras.utils import np_utils
 from keras.layers import Dropout
 import tensorflow as tf	
 from keras import backend as K
-from keras.optimizers import SGD
+from keras.layers import Bidirectional
 #print(tf.version.VERSION)
 from keras.layers import Convolution2D, MaxPooling2D
+from keras.optimizers import SGD
 import math
 from math import radians, cos, sin, asin, sqrt
 def distance(pos1, lat2, lon2):
@@ -104,7 +105,7 @@ def csv_to_df():
 def clustering(data):
     #coordinate = data.as_matrix(columns = ['latitude','longitude'])
     coordinate = data[['latitude','longitude']].to_numpy()
-    bandwidth = estimate_bandwidth(coordinate, quantile = 0.002)
+    bandwidth = estimate_bandwidth(coordinate, quantile = 0.02)
     meanshift = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     meanshift.fit(coordinate)
     labels = meanshift.labels_
@@ -257,7 +258,7 @@ def pre_padding(df,model,n):
         #print(X.shape, y.shape)
         #print(y)
         y = np_utils.to_categorical(y, n) #converting output into categorical values
-        hist = model.fit(X,y, epochs=50, batch_size=1, verbose=2)
+        hist = model.fit(X,y, epochs=40, batch_size=1, verbose=2)
     #print("YESSSSSSSSSSSS")
     return model, hist
 
@@ -273,7 +274,7 @@ data,n, center = clustering(data)
 train, test = train_test_split(data, test_size=0.2)
 #train,n = clustering(train.head(10))
 model = Sequential()
-model.add(LSTM(100, input_shape=(None,11)))
+model.add(Bidirectional(LSTM(100, input_shape=(None,11))))
 model.add(Dropout(0.5)) #regularization to prevent overfitting
 model.add(Dense(200, activation='relu'))
 model.add(Dense(n))
@@ -286,9 +287,8 @@ def linearlayer(softmaxout):
     return tf.matmul(softmaxout,center)
 #model.add(Dense(1, activation =linearlayer))
 model.add(Activation(linearlayer))
-optimizer = SGD(lr=0.1, momentum=0.9, clipvalue=1.)
-model.compile(loss=haversine, optimizer =optimizer)
-#model.compile(loss=haversine, optimizer ='adam', metrics=['accuracy'])
+optimizer = SGD(lr=0.01, momentum=0.9, clipvalue=1.)
+model.compile(loss=haversine, optimizer =optimizer, metrics=['accuracy'])
 model,hist = pre_padding(train,model,n)
 '''
 plt.plot(hist.history["loss"])

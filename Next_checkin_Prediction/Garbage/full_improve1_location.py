@@ -16,6 +16,7 @@ from keras import backend as K
 from keras.layers import Convolution2D, MaxPooling2D
 from math import radians, cos, sin, asin, sqrt
 from sklearn.metrics import accuracy_score
+from keras.optimizers import SGD
 
 import tensorflow as tf
 import matplotlib.pyplot as plt
@@ -37,7 +38,7 @@ def distance(pos1, lat2, lon2):
         * math.cos(math.radians(lat2)) * math.sin(dlon/2) * math.sin(dlon/2)
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     d = radius * c
-
+    
     return d
 def tf_atan2(y, x):
     angle = tf.where(tf.greater(x,0.0), tf.atan(y/x), tf.zeros_like(x))
@@ -61,13 +62,14 @@ def haversine(pos1, pos2):
     lat2 = pos2[:, 0]
     lon2 = pos2[:, 1]
     #lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
-
+    #print(lat1,lon1,lat2,lon2)
     # haversine formula 
     dlon = tf.abs(lon1 - lon2) * np.pi / 180
     dlat = tf.abs(lat1 - lat2) * np.pi / 180
     a = tf.sin(dlat/2)**2 + tf.cos(lat1 * np.pi / 180) * tf.cos(lat2 * np.pi / 180) * tf.sin(dlon/2)**2
     c = 2 * tf_atan2(tf.sqrt(a), tf.sqrt(1 - a))
     r = 6371 # Radius of earth in kilometers. Use 3956 for miles
+    #print("dddd ", c*r)
     return c * r
 
 def csv_to_df():
@@ -275,7 +277,7 @@ def pre_padding(df,model,n):
         #print(X.shape, y.shape)
         #print(y)
         #y = np_utils.to_categorical(y, n) #converting output into categorical values
-        hist = model.fit(X,y, epochs=30, batch_size=1, verbose=2)
+        hist = model.fit(X,y, epochs=10, batch_size=5, verbose=2)
     #print("YESSSSSSSSSSSS")
     return model, hist
 
@@ -283,7 +285,7 @@ data = csv_to_df()
 
 data = convert_to_categorical(data)
 #print(data.dtypes)
-#data = data.head(1000)
+data = data.head(1000)
 data,n, center = clustering(data)
 
 train, test = train_test_split(data, test_size=0.2)
@@ -302,7 +304,9 @@ def linearlayer(softmaxout):
     return tf.matmul(softmaxout,center)
 #model.add(Dense(1, activation =linearlayer))
 model.add(Activation(linearlayer))
-model.compile(loss=haversine, optimizer ='adam', metrics=['accuracy'])
+optimizer = SGD(lr=0.1, momentum=0.9, clipvalue=1.)
+model.compile(loss=haversine, optimizer =optimizer)
+#model.compile(loss=haversine, optimizer =optimizer, metrics=['accuracy'])
 model,hist = pre_padding(train,model,n)
 '''
 plt.plot(hist.history["loss"])
@@ -314,4 +318,5 @@ plt.legend(["train", "val"], loc="upper left")
 plt.show()
 print(n)
 '''
+print("cluster ", n)
 process_test(test, model,center)
